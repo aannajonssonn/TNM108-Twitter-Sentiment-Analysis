@@ -1,0 +1,5 @@
+# Ignore API_KEY.py
+API_KEYS.py
+
+# Ignore all files with a .pyc extension
+*.pyc
