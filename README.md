@@ -23,11 +23,18 @@ In order for this algorithm to work you need to have python installed on your co
 
 ## Install libraries using pip
 To install the libraries using pip, write the following command lines one by one:
+
 Numpy: ```pip install numpy```
+
 Tweepy: ```pip install tweepy```
+
 Matplotlib: ```pip install matplotlib```
+
 Pandas: ```pip install pandas```
+
 TextBlob: ``` pip install -U textblob ``` as well as ```python -m textblob.download_corpora``` to download the necessary NLTK corpora.
+
 WordCloud: ```pip install wordcloud```
+
 Better Profanity: ```pip install better_profanity```
 
