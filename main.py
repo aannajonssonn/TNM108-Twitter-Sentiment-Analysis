@@ -16,6 +16,9 @@ from textblob import TextBlob           # Process textual data for NLP, based on
 from wordcloud import WordCloud         # Create a word cloud to visualize the most common words
 from better_profanity import profanity  # Remove profanity from tweets
 
+# Importing libraries for the GUI
+import PySimpleGUI as sg                # To make the GUI  
+
 # Importing our Twitter API keys
 import API_KEYS
 
@@ -30,8 +33,32 @@ auth = OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth)
 
-# Ask user for input on what to search for
-search_term = input("Enter search keyword: ")
+# Create GUI
+layout = [[sg.Text("Enter a search keyword: "), sg.Input(key = 'search_term')],
+          [sg.Button("Search"), sg.Button("Exit")]]
+
+# Create window for GUI
+window = sg.Window("Twitter Sentiment Analysis", layout)
+
+# Create empty string to declare the search term
+search_term = ''
+
+# Create an event loop, exits when the user clicks the OK or exit button
+while True:
+    event, values = window.read()
+    # End program if user closes window or clicks Exit
+    if event == "Exit" or event == sg.WIN_CLOSED:
+        print('User exited the program')
+        quit()
+    # If the user clicks the search button, the program will run
+    if event == "Search":
+        # Define search term from input
+        search_term = values['search_term']
+        print('User searched for ' + search_term)
+        break
+window.close()
+
+# Continue with the Twitter Sentiment Analysis
 
 # Remove retweets
 search_term = search_term + " -filter:retweets"
@@ -98,7 +125,6 @@ m=pd.Series(n)
 m
 
 # Initialize variables, 'pos', 'neg', 'neu'.
-
 pos=0
 neg=0
 neu=0
@@ -134,7 +160,6 @@ print("%f percent of twitter users feel neutral about %s"%(neu,search_term))
 # Create a Wordcloud from the tweets
 all_words = ' '.join([text for text in cleaned])
 wordcloud = WordCloud(width=800, height=500, random_state=21, max_font_size=110).generate(all_words)
-
 plt.figure(figsize=(10, 7))
 plt.imshow(wordcloud, interpolation="bilinear")
 plt.axis('off')
