@@ -25,6 +25,9 @@ In order for this algorithm to work you need to have python installed on your co
 - [WordCloud](http://amueller.github.io/word_cloud/)
 - [Better_Profanity](https://github.com/snguyenthanh/better_profanity)
 - [PySimpleGUI](https://www.pysimplegui.org/en/latest/)
+- [NLTK](https://www.nltk.org/index.html)
+- [Flair](https://github.com/flairNLP/flair)
+- [Collection](https://docs.python.org/3/library/collections.html#)
 
 ### Install libraries using pip
 To install the libraries using pip, write the following command lines one by one:
@@ -37,4 +40,6 @@ To install the libraries using pip, write the following command lines one by one
 - WordCloud: ```pip install wordcloud```
 - Better Profanity: ```pip install better_profanity```
 - PySimpleGUI: ```pip install pysimplegui```
-
+- NLTK: ```pip install nltk```
+- Flair: ```pip install flair```
+- Collection: ```pip install collection```

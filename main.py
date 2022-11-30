@@ -6,20 +6,22 @@
 # Heavily based on this tutorial: https://medium.com/@nikitasilaparasetty/twitter-sentiment-analysis-for-data-science-using-python-in-2022-6d5e43f6fa6e
 
 # Importing libraries
-import re                               # Regular expressions allows us to check if a specified string and a given regular expression match
-import numpy as np                      # Working with arrays
-import tweepy                           # Accessing the Twitter API
-from tweepy import OAuthHandler         # Authentication handler
-import matplotlib.pyplot as plt         # Visualize data in mulitple ways
-import pandas as pd                     # Data manipulation and analysis
-from textblob import TextBlob           # Process textual data for NLP, based on nltk
-from wordcloud import WordCloud         # Create a word cloud to visualize the most common words
-from better_profanity import profanity  # Remove profanity from tweets
+import re                                   # Regular expressions allows us to check if a specified string and a given regular expression match
+import numpy as np                          # Working with arrays
+import tweepy                               # Accessing the Twitter API
+from tweepy import OAuthHandler             # Authentication handler
+import matplotlib.pyplot as plt             # Visualize data in mulitple ways
+import pandas as pd                         # Data manipulation and analysis
+from textblob import TextBlob               # Process textual data for NLP, based on nltk
+from wordcloud import WordCloud             # Create a word cloud to visualize the most common words
+from better_profanity import profanity      # Remove profanity from tweets
+from nltk.corpus import stopwords           # Remove stopwords from the tweets
+from collections import Counter             # Count the number of times a value appears in a list
 
 # Importing libraries for the GUI
-import PySimpleGUI as sg                # To make the GUI  
+import PySimpleGUI as sg                    # To make the GUI  
 
-# Importing our Twitter API keys
+# Importing our Twitter API keys from API_KEYS.py
 import API_KEYS
 
 # Set the API-keys
@@ -34,14 +36,14 @@ auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth)
 
 # Create GUI
-layout = [[sg.Text("Enter a search keyword: "), sg.Input(key = 'search_term')],
+layout = [[sg.Text("Enter a search keyword: "), sg.Input(key = 'query')],
           [sg.Button("Search"), sg.Button("Exit")]]
 
 # Create window for GUI
 window = sg.Window("Twitter Sentiment Analysis", layout)
 
 # Create empty string to declare the search term
-search_term = ''
+query = ''
 
 # Create an event loop, exits when the user clicks the OK or exit button
 while True:
@@ -53,15 +55,15 @@ while True:
     # If the user clicks the search button, the program will run
     if event == "Search":
         # Define search term from input
-        search_term = values['search_term']
-        print('User searched for ' + search_term)
+        query = values['query']
+        print('User searched for ' + query)
         break
 window.close()
 
 # Continue with the Twitter Sentiment Analysis
 
 # Remove retweets
-search_term = search_term + " -filter:retweets"
+search_term = query + " -filter:retweets"
 
 # Get the latest 100 tweets on the topic
 # HÄR KAN VI ÄNDRA SPRÅK, ANTAL TWEETS, OSV
@@ -79,10 +81,10 @@ tweet_list = df.tweets.to_list()
 
 # Create a function to clean the tweets. Remove profanity, unnecessary characters, spaces, and stopwords.
 def clean_tweet(tweet):
-    if type(tweet) == np.float:
+    if type(tweet) == np.float: # If the tweet is a float, return an empty string
         return ""
-    r = tweet.lower()
-    r = profanity.censor(r)
+    r = tweet.lower() # Convert the tweet to lowercase
+    r = profanity.censor(r) # Remove profanity
     r = re.sub("'", "", r) # This is to avoid removing contractions in english
     r = re.sub("@[A-Za-z0-9_]+","", r)
     r = re.sub("#[A-Za-z0-9_]+","", r)
@@ -91,8 +93,14 @@ def clean_tweet(tweet):
     r = re.sub('\[.*?\]',' ', r)
     r = re.sub("[^a-z0-9]"," ", r)
     r = r.split()
-    stopwords = ["for", "on", "an", "a", "of", "and", "in", "the", "to", "from"]
-    r = [w for w in r if not w in stopwords]
+
+    # Declare stopwords to remove from the tweets
+    stop_words = set(stopwords.words('english'))
+
+    # Remove stopwords from the tweets
+    r = [w for w in r if not w in stop_words]
+
+    # Join the words back together
     r = " ".join(word for word in r)
     return r
 
@@ -101,10 +109,12 @@ cleaned = [clean_tweet(tw) for tw in tweet_list]
 cleaned
 
 # Define the sentiment objects using TextBlob
+# TODO: Change the function so it uses Flair/ NLTK instead or another vector based function
 sentiment_objects = [TextBlob(tweet) for tweet in cleaned]
 sentiment_objects[0].polarity, sentiment_objects[0]
 
 # Create a list of polarity values and tweet text
+# TODO: Change the function so it uses Flair/ NLTK instead or another vector based function ?
 sentiment_values = [[tweet.sentiment.polarity, str(tweet)] for tweet in sentiment_objects]
 
 # Print the value of the 0th row.
@@ -153,9 +163,9 @@ axesObject.axis('equal')
 plt.show()
 
 # Display the number of twitter users who feel a certain way about the given topic.
-print("%f percent of twitter users feel positive about %s"%(pos,search_term))
-print("%f percent of twitter users feel negative about %s"%(neg,search_term))
-print("%f percent of twitter users feel neutral about %s"%(neu,search_term))
+print("%f percent of twitter users feel positive about %s"%(pos,query))
+print("%f percent of twitter users feel negative about %s"%(neg,query))
+print("%f percent of twitter users feel neutral about %s"%(neu,query))
 
 # Create a Wordcloud from the tweets
 all_words = ' '.join([text for text in cleaned])
@@ -165,3 +175,14 @@ plt.imshow(wordcloud, interpolation="bilinear")
 plt.axis('off')
 plt.show()
 
+# Create list of all individual words
+list_all_words = all_words.split()
+
+# Remove words that are just numbers eg. years
+list_all_words = [w for w in list_all_words if not w.isnumeric()]
+
+# Find the 10 most common words in the tweets
+common_words = Counter(list_all_words).most_common(10)
+print('Top 10 most common words: ' + str(common_words))
+
+# TODO: Add a function to see subjectivity in the tweets?
