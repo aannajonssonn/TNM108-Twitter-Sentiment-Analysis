@@ -5,13 +5,16 @@ The project is made by Anna Jonsson and Amanda Bigelius, and the goal is to make
 
 If you're interested in the process of this project, we have a little blog here: https://codelikealady.blogspot.com/ 
 
-## Inspiration and sources
+## Inspiration and sources :brain:
+### Twitter Sentiment Analysis
 The algorithm will be heavily based on [Nikita Silaparasetty's](https://github.com/nikitasilaparasetty) code from [this tutorial](https://medium.com/@nikitasilaparasetty/twitter-sentiment-analysis-for-data-science-using-python-in-2022-6d5e43f6fa6e)
 
 
 Her repository for the tutorial can be found [here](https://github.com/nikitasilaparasetty/Twitter-Sentiment-Analysis-Projects-2022-)
 
-# Requirements
+### Graphical User Interface
+
+## Requirements :hammer_and_wrench:
 In order for this algorithm to work you need to have python installed on your computer, as well as the following libraries:
 - [NumPy](https://numpy.org/)
 - [Tweepy](https://www.tweepy.org/)
@@ -21,7 +24,7 @@ In order for this algorithm to work you need to have python installed on your co
 - [WordCloud](http://amueller.github.io/word_cloud/)
 - [Better_Profanity](https://github.com/snguyenthanh/better_profanity)
 
-## Install libraries using pip
+### Install libraries using pip
 To install the libraries using pip, write the following command lines one by one:
 
 Numpy: ```pip install numpy```
