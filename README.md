@@ -9,8 +9,8 @@ If you're interested in the process of this project, we have a little blog here:
 ### Twitter Sentiment Analysis
 The algorithm will be heavily based on [Nikita Silaparasetty's](https://github.com/nikitasilaparasetty) code from [this tutorial](https://medium.com/@nikitasilaparasetty/twitter-sentiment-analysis-for-data-science-using-python-in-2022-6d5e43f6fa6e)
 
-
 Her repository for the tutorial can be found [here](https://github.com/nikitasilaparasetty/Twitter-Sentiment-Analysis-Projects-2022-)
+
 
 ### Graphical User Interface
 The GUI has been made with the library PySimpleGUI, and this [stackoverflow answer](https://stackoverflow.com/a/66537814) was very helpful.

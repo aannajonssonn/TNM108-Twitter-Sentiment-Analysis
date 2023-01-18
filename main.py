@@ -13,13 +13,34 @@ from tweepy import OAuthHandler             # Authentication handler
 import matplotlib.pyplot as plt             # Visualize data in mulitple ways
 import pandas as pd                         # Data manipulation and analysis
 from textblob import TextBlob               # Process textual data for NLP, based on nltk
+from textblob import Word
 from wordcloud import WordCloud             # Create a word cloud to visualize the most common words
 from better_profanity import profanity      # Remove profanity from tweets
-from nltk.corpus import stopwords           # Remove stopwords from the tweets
 from collections import Counter             # Count the number of times a value appears in a list
 
 # Importing libraries for the GUI
 import PySimpleGUI as sg                    # To make the GUI  
+
+# Define the stop words
+stop_words = ['a', 'about', 'above', 'after', 'again', 'ain', 'all', 'am', 'an',
+             'and','any','are', 'as', 'at', 'be', 'because', 'been', 'before',
+             'being', 'below', 'between','both', 'by', 'can', 'd', 'did', 'do',
+             'does', 'doing', 'down', 'during', 'each','few', 'for', 'from',
+             'further', 'had', 'has', 'have', 'having', 'he', 'her', 'here',
+             'hers', 'herself', 'him', 'himself', 'his', 'how', 'i', 'if', 'in',
+             'into','is', 'it', 'its', 'itself', 'just', 'll', 'm', 'ma',
+             'me', 'more', 'most','my', 'myself', 'now', 'o', 'of', 'on', 'once',
+             'only', 'or', 'other', 'our', 'ours','ourselves', 'out', 'own', 're','s',
+             'same', 'she', "shes", 'should', "shouldve",'so', 'some', 'such',
+             't', 'than', 'that', "thatll", 'the', 'their', 'theirs', 'them',
+             'themselves', 'then', 'there', 'these', 'they', 'this', 'those',
+             'through', 'to', 'too','under', 'until', 'up', 've', 'very', 'was',
+             'we', 'were', 'what', 'when', 'where','which','while', 'who', 'whom',
+             'why', 'will', 'with', 'won', 'y', 'you', "youd","youll", "youre",
+             "youve", 'your', 'yours', 'yourself', 'yourselves', 'rt', 'lol', 'yet',
+             'see', 'get', 'go', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
+             'eight', 'nine', 'ten', 'also', 'would', 'could', 'should', 'may', 'might',
+             'must', 'shall', 'will', 'us', 'im', 'ive', 'got', 'set']
 
 # Importing our Twitter API keys from API_KEYS.py
 import API_KEYS
@@ -60,14 +81,14 @@ while True:
         break
 window.close()
 
-# Continue with the Twitter Sentiment Analysis
+# Continue with the Twitter Sentiment Analysis, pre-processing
 
 # Remove retweets
 search_term = query + " -filter:retweets"
 
 # Get the latest 100 tweets on the topic
 # HÄR KAN VI ÄNDRA SPRÅK, ANTAL TWEETS, OSV
-tweets = tweepy.Cursor(api.search_tweets, q = search_term, lang = "en").items(100)
+tweets = tweepy.Cursor(api.search_tweets, q = search_term, lang = "en").items(500)
 
 # Create a list of tweets, the users, and their location
 list1 = [[tweet.text, tweet.user.screen_name, tweet.user.location] for tweet in tweets]
@@ -76,68 +97,60 @@ list1 = [[tweet.text, tweet.user.screen_name, tweet.user.location] for tweet in 
 df = pd.DataFrame(data=list1, 
                     columns=['tweets','user', "location"])
 
-# Convert only the tweets into a list
-tweet_list = df.tweets.to_list()
+# Save the uncleaned tweets to a csv file
+df['tweets'].to_csv('dataset/uncleaned_tweets.csv', index=False, encoding = 'utf-8')
 
-# Create a function to clean the tweets. Remove profanity, unnecessary characters, spaces, and stopwords.
-def clean_tweet(tweet):
-    if type(tweet) == np.float: # If the tweet is a float, return an empty string
-        return ""
-    r = tweet.lower() # Convert the tweet to lowercase
-    r = profanity.censor(r) # Remove profanity
-    r = re.sub("'", "", r) # This is to avoid removing contractions in english
-    r = re.sub("@[A-Za-z0-9_]+","", r)
-    r = re.sub("#[A-Za-z0-9_]+","", r)
-    r = re.sub(r'http\S+', '', r)
-    r = re.sub('[()!?]', ' ', r)
-    r = re.sub('\[.*?\]',' ', r)
-    r = re.sub("[^a-z0-9]"," ", r)
-    r = r.split()
-
-    # Declare stopwords to remove from the tweets
-    stop_words = set(stopwords.words('english'))
-
-    # Remove stopwords from the tweets
-    r = [w for w in r if not w in stop_words]
-
-    # Join the words back together
-    r = " ".join(word for word in r)
-    return r
+# Preprocessthe data by creating a function to clean the tweets. Remove profanity, unnecessary characters, spaces, and stopwords.
+def clean_tweets(df, stop_words):
+    df['tweets'] = df['tweets'].apply(lambda x: ' '.join(x.lower() for x in x.split()))
+    # Remove profanity
+    df['tweets'] = df['tweets'].apply(lambda x: profanity.censor(x))
+    # Remove links
+    df['tweets'] = df['tweets'].str.replace(r'http\S+', '') 
+    # Removing stop words
+    df['tweets'] = df['tweets'].apply(lambda x: ' '.join(x for x in x.split() if x not in stop_words))
+    # Lemmatization
+    df['tweets'] = df['tweets'].apply(lambda x: ' '.join([Word(x).lemmatize() for x in x.split()]))
+    return df
 
 # Run the list of tweets through the clean_tweet function and display the tweets
-cleaned = [clean_tweet(tw) for tw in tweet_list]
-cleaned
+cleaned = clean_tweets(df, stop_words)
+#cleaned
+
+# Save the cleaned tweets to a csv file
+cleaned['tweets'].to_csv('dataset/cleaned_tweets.csv', index=False, encoding = 'utf-8')
+
+# Convert only the tweets to a list
+cleaned_li = cleaned['tweets'].tolist()
 
 # Define the sentiment objects using TextBlob
-# TODO: Change the function so it uses Flair/ NLTK instead or another vector based function
-sentiment_objects = [TextBlob(tweet) for tweet in cleaned]
-sentiment_objects[0].polarity, sentiment_objects[0]
+sentiment_objects_tb = [TextBlob(tweet) for tweet in cleaned_li]
+sentiment_objects_tb[0].polarity, sentiment_objects_tb[0]
 
 # Create a list of polarity values and tweet text
-# TODO: Change the function so it uses Flair/ NLTK instead or another vector based function ?
-sentiment_values = [[tweet.sentiment.polarity, str(tweet)] for tweet in sentiment_objects]
+sentiment_values_tb = [[tweet.sentiment.polarity, str(tweet)] for tweet in sentiment_objects_tb]
 
 # Print the value of the 0th row.
-sentiment_values[0]
+sentiment_values_tb[0]
 
 # Print all the sentiment values
-sentiment_values[0:99]
+sentiment_values_tb[0:99]
 
 # Create a dataframe of each tweet against its polarity
-sentiment_df = pd.DataFrame(sentiment_values, columns=["polarity", "tweet"])
+sentiment_df = pd.DataFrame(sentiment_values_tb, columns=["polarity", "tweet"])
 sentiment_df
 
 # Save the polarity column as 'n'.
-n=sentiment_df["polarity"]
+n = sentiment_df["polarity"]
 
 # Convert this column into a series, 'm'. 
-m=pd.Series(n)
+m = pd.Series(n)
 m
 
 # Initialize variables, 'pos', 'neg', 'neu'.
-pos=0
-neg=0
-neu=0
+pos = 0
+neg = 0
+neu = 0
 
 # Create a loop to classify the tweets as Positive, Negative, or Neutral.
 # Count the number of each.
@@ -152,6 +165,11 @@ for items in m:
         print("Neutral")
         neu=neu+1
         
+# Divide the number of each by the total number of tweets to get the percentage of each.
+pos = (pos/len(m))*100
+neg = (neg/len(m))*100
+neu = (neu/len(m))*100
+
 print(pos,neg,neu)
 
 # Create a pie chart to visualize the results.
@@ -168,8 +186,8 @@ print("%f percent of twitter users feel negative about %s"%(neg,query))
 print("%f percent of twitter users feel neutral about %s"%(neu,query))
 
 # Create a Wordcloud from the tweets
-all_words = ' '.join([text for text in cleaned])
-wordcloud = WordCloud(width=800, height=500, random_state=21, max_font_size=110).generate(all_words)
+all_words = ' '.join([text for text in cleaned_li])
+wordcloud = WordCloud(width=800, height=500, random_state=21, max_font_size=110, collocations=False).generate(all_words)
 plt.figure(figsize=(10, 7))
 plt.imshow(wordcloud, interpolation="bilinear")
 plt.axis('off')
