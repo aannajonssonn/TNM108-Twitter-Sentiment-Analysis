@@ -21,6 +21,9 @@ from collections import Counter             # Count the number of times a value 
 # Importing libraries for the GUI
 import PySimpleGUI as sg                    # To make the GUI  
 
+# Load validation dataset
+#validation = pd.read_csv('dataset/tweets_validation.csv')
+
 # Define the stop words
 stop_words = ['a', 'about', 'above', 'after', 'again', 'ain', 'all', 'am', 'an',
              'and','any','are', 'as', 'at', 'be', 'because', 'been', 'before',
@@ -40,7 +43,7 @@ stop_words = ['a', 'about', 'above', 'after', 'again', 'ain', 'all', 'am', 'an',
              "youve", 'your', 'yours', 'yourself', 'yourselves', 'rt', 'lol', 'yet',
              'see', 'get', 'go', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
              'eight', 'nine', 'ten', 'also', 'would', 'could', 'should', 'may', 'might',
-             'must', 'shall', 'will', 'us', 'im', 'ive', 'got', 'set']
+             'must', 'shall', 'will', 'us', 'im', 'ive', 'got', 'set', '-']
 
 # Importing our Twitter API keys from API_KEYS.py
 import API_KEYS
@@ -88,7 +91,7 @@ search_term = query + " -filter:retweets"
 
 # Get the latest 100 tweets on the topic
 # HÄR KAN VI ÄNDRA SPRÅK, ANTAL TWEETS, OSV
-tweets = tweepy.Cursor(api.search_tweets, q = search_term, lang = "en").items(500)
+tweets = tweepy.Cursor(api.search_tweets, q = search_term, lang = "en").items(100)
 
 # Create a list of tweets, the users, and their location
 list1 = [[tweet.text, tweet.user.screen_name, tweet.user.location] for tweet in tweets]
@@ -100,7 +103,7 @@ df = pd.DataFrame(data=list1,
 # Save the uncleaned tweets to a csv file
 df['tweets'].to_csv('dataset/uncleaned_tweets.csv', index=False, encoding = 'utf-8')
 
-# Preprocessthe data by creating a function to clean the tweets. Remove profanity, unnecessary characters, spaces, and stopwords.
+# Preprocess the data by creating a function to clean the tweets. Remove profanity, unnecessary characters, spaces, and stopwords.
 def clean_tweets(df, stop_words):
     df['tweets'] = df['tweets'].apply(lambda x: ' '.join(x.lower() for x in x.split()))
     # Remove profanity
@@ -113,9 +116,11 @@ def clean_tweets(df, stop_words):
     df['tweets'] = df['tweets'].apply(lambda x: ' '.join([Word(x).lemmatize() for x in x.split()]))
     return df
 
-# Run the list of tweets through the clean_tweet function and display the tweets
+# Run the list of tweets through the clean_tweet function
 cleaned = clean_tweets(df, stop_words)
-#cleaned
+
+# Run the validation tweets though the clean_tweet function
+#cleaned_val = clean_tweets(validation, stop_words) 
 
 # Save the cleaned tweets to a csv file
 cleaned['tweets'].to_csv('dataset/cleaned_tweets.csv', index=False, encoding = 'utf-8')
@@ -152,6 +157,10 @@ pos = 0
 neg = 0
 neu = 0
 
+# Sentiment analysis using Naive bayes
+
+
+# --- PRINTING ---
 # Create a loop to classify the tweets as Positive, Negative, or Neutral.
 # Count the number of each.
 for items in m:
@@ -173,7 +182,7 @@ neu = (neu/len(m))*100
 print(pos,neg,neu)
 
 # Create a pie chart to visualize the results.
-pieLabels=["Positive","Negative","Neutral"]
+pieLabels = ["Positive","Negative","Neutral"]
 populationShare=[pos,neg,neu]
 figureObject, axesObject = plt.subplots()
 axesObject.pie(populationShare,labels=pieLabels,autopct='%1.2f',startangle=90)
@@ -181,9 +190,9 @@ axesObject.axis('equal')
 plt.show()
 
 # Display the number of twitter users who feel a certain way about the given topic.
-print("%f percent of twitter users feel positive about %s"%(pos,query))
-print("%f percent of twitter users feel negative about %s"%(neg,query))
-print("%f percent of twitter users feel neutral about %s"%(neu,query))
+print("%f percent of twitter users feel positive about %s"%(pos, query))
+print("%f percent of twitter users feel negative about %s"%(neg, query))
+print("%f percent of twitter users feel neutral about %s"%(neu, query))
 
 # Create a Wordcloud from the tweets
 all_words = ' '.join([text for text in cleaned_li])

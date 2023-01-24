@@ -6,11 +6,13 @@ The project is made by Anna Jonsson and Amanda Bigelius, and the goal is to make
 If you're interested in the process of this project, we have a little blog here: https://codelikealady.blogspot.com/ 
 
 ## Inspiration and sources :brain:
-### Twitter Sentiment Analysis
+### Twitter Sentiment Analysis using TextBlob
 The algorithm will be heavily based on [Nikita Silaparasetty's](https://github.com/nikitasilaparasetty) code from [this tutorial](https://medium.com/@nikitasilaparasetty/twitter-sentiment-analysis-for-data-science-using-python-in-2022-6d5e43f6fa6e)
 
 Her repository for the tutorial can be found [here](https://github.com/nikitasilaparasetty/Twitter-Sentiment-Analysis-Projects-2022-)
 
+### Twitter Sentiment Analysis using ...
+This algorithm uses the tweets scraped during the previous step, as well as tweets from [this dataset](https://www.kaggle.com/datasets/jp797498e/twitter-entity-sentiment-analysis).
 
 ### Graphical User Interface
 The GUI has been made with the library PySimpleGUI, and this [stackoverflow answer](https://stackoverflow.com/a/66537814) was very helpful.
