@@ -405,6 +405,8 @@ rs_parameters = {
 
 ### Training without feature selection ###
 lr = LogisticRegression()
+
+print('Cross Validation...')
 model_cv_lr = train_cv(lr, X_train, y_train, rs_parameters)
 
 bestimator_lr = model_cv_lr.best_estimator_
@@ -446,6 +448,7 @@ X_test_6k = X_test[[pair[0] for pair in cols_importance[:6000]]]
 
 # Leave 6k features
 lr = LogisticRegression()
+print('Cross Validation FS 6k...')
 model_cv_lr_6k = train_cv(lr, X_train_6k, y_train, rs_parameters)
 
 bestimator_lr_6k = model_cv_lr_6k.best_estimator_
