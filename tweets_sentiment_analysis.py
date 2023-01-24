@@ -447,16 +447,18 @@ X_test_6k = X_test[[pair[0] for pair in cols_importance[:6000]]]
 # with open('../X_test_6k.pkl', 'rb') as f: X_test_6k = pickle.load(f)
 
 # Leave 6k features
-lr = LogisticRegression()
-print('Cross Validation FS 6k...')
-model_cv_lr_6k = train_cv(lr, X_train_6k, y_train, rs_parameters)
+# lr = LogisticRegression()
+# print('Cross Validation FS 6k...')
+# model_cv_lr_6k = train_cv(lr, X_train_6k, y_train, rs_parameters)
 
-bestimator_lr_6k = model_cv_lr_6k.best_estimator_
+# bestimator_lr_6k = model_cv_lr_6k.best_estimator_
 
-print(classification_report(y_test, bestimator_lr_6k.predict(X_test_6k)))
+# print(classification_report(y_test, bestimator_lr_6k.predict(X_test_6k)))
 
-sns.heatmap(confusion_matrix(y_test, bestimator_lr_6k.predict(X_test_6k)), annot=True)
-plt.show()
+# sns.heatmap(confusion_matrix(y_test, bestimator_lr_6k.predict(X_test_6k)), annot=True)
+# plt.show()
+
+print('- - - - - DONE - - - - - ')
 
 # Binary Classification + TextBlob Sentiment Analysis 
 
