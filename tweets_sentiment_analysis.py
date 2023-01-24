@@ -10,86 +10,93 @@ import numpy as np
 import pandas as pd
 import pickle
 
+# EDA - Exploratory Data Analysis
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-import re
-
+# Top words
+# import re     # NOT same as regex!! Might create bug!
 import nltk
 from nltk.corpus import stopwords
 
+# Correlated words
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_selection import chi2
 
+# ANOVA test to ensure the distrubution of tweets lengths doesnt differ
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
 
-from textblob import TextBlob
+# from textblob import TextBlob
 
+# Emoticons
 import emoji
-import regex as re
+import regex as re      # Again, NOT same as ordinary 're'!
 
+# Preprocessing
 from tqdm import tqdm
 from sklearn.feature_extraction.text import TfidfVectorizer
+# NLP processing
 import spacy
 from spacy.lang.en import English
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.utils.validation import check_is_fitted
-from sklearn.model_selection import train_test_split
-from sklearn.exceptions import NotFittedError
 
+# Data processing and analytics
+from sklearn.preprocessing import OneHotEncoder         # Categorical --> binary
+#from sklearn.utils.validation import check_is_fitted
+#from sklearn.model_selection import train_test_split
+#from sklearn.exceptions import NotFittedError
+
+# Training
 from sklearn.metrics import classification_report
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.linear_model import LogisticRegression
-from scipy.stats import uniform, randint
-from sklearn.model_selection import train_test_split, GridSearchCV, KFold
+from scipy.stats import uniform
+from sklearn.model_selection import  KFold
 from sklearn.metrics import confusion_matrix
 
+# MI feature selection
 from sklearn.feature_selection import mutual_info_classif as MIC
 
-import torch
-from torch import nn
-from torch.nn import functional as F
-from torch.utils.data import DataLoader
-from torch.utils.data import random_split
-import torch.utils.data as data_utils
-from torch.optim.lr_scheduler import StepLR
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import LearningRateMonitor
-from IPython.display import clear_output
+# Neural network stuff
+# import torch
+# from torch import nn
+# from torch.nn import functional as F
+# from torch.utils.data import DataLoader
+# from torch.utils.data import random_split
+# import torch.utils.data as data_utils
+# from torch.optim.lr_scheduler import StepLR
+# import pytorch_lightning as pl
+# from pytorch_lightning.callbacks import LearningRateMonitor
+# from IPython.display import clear_output
 
 import warnings
 warnings.filterwarnings("ignore")
 
-# Load the datasets
+# Load the datasets - data & validation data
 data = pd.read_csv('dataset/twitter_training.csv', header=None)
 val_data = pd.read_csv('dataset/twitter_validation.csv', header=None)
-
-# Show the data
-# data
-
-# Show the validation data
-# val_data
 
 # Rename the columns
 data.columns = ['tweet_id', 'subject', 'sentiment', 'text']
 val_data.columns = ['tweet_id', 'subject', 'sentiment', 'text']
 
-# Global names
+# Global names - dependent variable
 TARGET = 'sentiment'
 
-## EDA - Exploratory Data Analysis ##
+# *************************************************************#
+##          EDA - Exploratory Data Analysis                   ##
+# *************************************************************#
 
-# Show how the data works
-data.info()
+## Show how the data works
+# data.info()
 
-# Nans
-data.isnull().sum()
-val_data.isnull().sum()
+## Non valid data values ("Nans")   - Not necessary while testing
+# data.isnull().sum()
+# val_data.isnull().sum()
 
 # Drop samples with nans/ missing values
 data.dropna(inplace = True, axis = 0)
-# val_data.dropna(inplace = True, axis = 0)
+# val_data.dropna(inplace = True, axis = 0)     # There is no missing values in the validation data set, we don't need to drop any rows
 
 # Text stats
 texts = data['text']
@@ -108,18 +115,18 @@ plt.show()
 # Find and examine extreme outliers
 extreme_outliers = data['text'][np.array(text_lens) > 125]
 
-for idx in extreme_outliers.index:
-    print(idx, 'Target', data[TARGET][idx])
-    print(extreme_outliers[idx])
-    print('=-=-=-=-=-=-=-=-'*4, '\n')
+# for idx in extreme_outliers.index:
+#    print(idx, 'Target', data[TARGET][idx])
+#    print(extreme_outliers[idx])
+#    print('=-=-=-=-=-=-=-=-'*4, '\n')
 
 # Investigate outliers closer to the majority
 outliers = data['text'][np.array(text_lens) > 60]
 
-for idx in outliers.index:
-    print(idx, 'Target', data[TARGET][idx])
-    print(outliers[idx])
-    print('=-=-=-=-=-=-=-=-'*4, '\n')
+# for idx in outliers.index:
+#    print(idx, 'Target', data[TARGET][idx])
+#    print(outliers[idx])
+#    print('=-=-=-=-=-=-=-=-'*4, '\n')
 
 ## Target Analysis ##
 
@@ -136,16 +143,11 @@ plt.show()
 ## Find the most common words in the tweets ##
 stopwords_list = stopwords.words('english')
 
-###
-nltk.download('stopwords')
-stopwords = set(stopwords.words('english'))
-nlp = spacy.load("en_core_web_sm")
-###
-
 word_counts = {'Positive': [], 'Neutral': [], 'Irrelevant': [], 'Negative': []}
 
 pattern = re.compile('[^\w ]')
 
+# Remove stopwords, make lowecase, and split into words
 for text, t in zip(data['text'], data[TARGET]):
     text = re.sub(pattern, '', text).lower().split()
     text = [word for word in text if word not in stopwords_list]
@@ -222,38 +224,36 @@ for t, emojis in target_emojis.items():
     plt.title(f'{t}')
     plt.show()
 
-# Capitalization distribution
-capitalized = [np.sum([t.isupper() for t in text.split()]) for text in np.array(data['text'])]
-capitalized_target = pd.DataFrame([(c, t) for c, t in zip(capitalized, data[TARGET])], columns=['cap', 'target'])
+# *********************************************************#
+#               START OF PROCESSING DATA                   #
+# *********************************************************#
 
-fig, axes = plt.subplots(2, 1, figsize=(15, 8))
-axes[0].set_title('Distribution of capitalized in tweets')
-sns.boxplot(x=capitalized_target['cap'], y=capitalized_target['target'], ax=axes[0])
-
-sns.kdeplot(data=capitalized_target, x='cap', hue='target', ax=axes[1])
-plt.show()
-
-# Closer look
-capitalized_target_no_outliers = capitalized_target[capitalized_target['cap'] < 75]
-fig, axes = plt.subplots(2, 1, figsize=(15, 8))
-axes[0].set_title('Distribution of capitalized in tweets')
-sns.boxplot(x=capitalized_target_no_outliers['cap'], y=capitalized_target['target'], ax=axes[0])
-
-sns.kdeplot(data=capitalized_target_no_outliers, x='cap', hue='target', ax=axes[1])
-plt.show()
-
-plt.figure(figsize=(5, 8))
-sns.heatmap(pd.crosstab(data['subject'], data[TARGET], normalize='index'), annot=True)
-plt.title('Frequencies of meeting referred objects in each category')
 
 ### Preprocessing ###
+
+capitalized = [np.sum([t.isupper() for t in text.split()]) for text in np.array(data['text'])]
+# capitalized_target = pd.DataFrame([(c, t) for c, t in zip(capitalized, data[TARGET])], columns=['cap', 'target'])
+# capitalized_target_no_outliers = capitalized_target[capitalized_target['cap'] < 75]
+
+# Why ??
 ids_to_remove = [1826, 10454, 32186, 68078]
 data = data[~data.index.isin(ids_to_remove)]
 data.index = range(len(data))
 
+# Collects all the cleanup methods into a class. 
+# Put smaller cleanup functions into 'transform' function.
+# Calls the cleanup by pr = Preprocessor(), and then pr.transform(...)
+
+nltk.download('stopwords')
+stopwords = set(stopwords.words('english'))
+nlp = spacy.load("en_core_web_sm")
+
 class Preprocessor:
+    
+    #Initialises class variables 'vectorizer', 'stopwords', vectorizer_fitted'
+    #OBS: max_features here should match init of TFIDF higher up in code, or at least be lower?
     def __init__(self, stopwords=stopwords):
-        self.vectorizer = TfidfVectorizer(lowercase=False, max_features=8000,
+        self.vectorizer = TfidfVectorizer(lowercase=False, max_features=10000,
                                          min_df=10, ngram_range=(1, 3),
                                          tokenizer=None)
         self.stopwords = stopwords
@@ -305,6 +305,8 @@ class Preprocessor:
             self.train_idx = X.index
         else:
             self.test_idx = X.index
+        
+        #We dont use 'cap' after this. Still necessary?
         print('Counting capitalized...')
         capitalized = [np.sum([t.isupper() for t in text.split()]) 
                            for text in np.array(X.values)]  # count capitalized
@@ -319,6 +321,8 @@ class Preprocessor:
         X = self.remove_numbers(X)                   # remove numbers                      
         X = self.lemmatize(X)                        # lemmatize
         
+        #Checks if we've already fitted the data
+        # --> Same result no matter how many times we use pr.transform(...)
         if not self.vectorizer_fitted:
             self.vectorizer_fitted = True
             print('Fitting vectorizer...')
@@ -337,13 +341,20 @@ data_test = val_data
 y_train = data['sentiment']
 y_test = val_data['sentiment']
 
+# Cleanup --> processed data
 data_train_pr = pr.transform(data_train['text'])
+
+# Makes sparse matrix out of the cleaned relevant words (?)
 data_train_pr = pd.DataFrame.sparse.from_spmatrix(data_train_pr, columns=pr.vectorizer.get_feature_names_out())
 
+# Convert categorys to binary values. 
+# If word is in the category: 1
+# If word is not in category: -1
 ohe = OneHotEncoder()
 referring_ohe = ohe.fit_transform(data_train['subject'][data_train.index.isin(pr.train_idx)].to_numpy().reshape(-1, 1))
 referring_ohe = pd.DataFrame.sparse.from_spmatrix(referring_ohe, columns=ohe.get_feature_names_out())
 
+# Concat mashes the sparse matrix into a single string / array?
 X_train = pd.concat([data_train_pr, referring_ohe], axis=1)
 y_train = y_train[y_train.index.isin(pr.train_idx)]
 y_train.index = X_train.index
@@ -372,29 +383,14 @@ with open('../y_train.pkl', 'wb') as f:
     pickle.dump(y_train, f)
 with open('../y_test.pkl', 'wb') as f:
     pickle.dump(y_test, f)
-    
-# with open('../X_train.pkl', 'rb') as f:
-#     X_train = pickle.load(f)
-# with open('../X_test.pkl', 'rb') as f:
-#     X_test = pickle.load(f)
-# with open('../y_train.pkl', 'rb') as f:
-#     y_train = pickle.load(f)
-# with open('../y_test.pkl', 'rb') as f:
-#     y_test = pickle.load(f)
 
 ### Training ###
-def train_cv(model, X_train, y_train, params, n_splits=5, scoring='f1_weighted'):
-    kf = KFold(n_splits=n_splits, random_state=0, shuffle=True)
 
-    cv = RandomizedSearchCV(model,
-                        params,
-                        cv=kf,
-                        scoring=scoring,
-                        return_train_score=True,
-                        n_jobs=-1,
-                        verbose=2,
-                        random_state=1
-                        )
+# Cross validation, gridsearch
+def train_cv(model, X_train, y_train, params, n_splits = 5, scoring='f1_weighted'):
+    kf = KFold(n_splits = n_splits, random_state = 0, shuffle = True)
+
+    cv = RandomizedSearchCV(model, params, cv = kf, scoring = scoring, return_train_score = True, n_jobs = -1, verbose = 2, random_state = 1)
     cv.fit(X_train, y_train)
 
     print('Best params', cv.best_params_)
@@ -416,10 +412,10 @@ bestimator_lr = model_cv_lr.best_estimator_
 print(classification_report(y_test, bestimator_lr.predict(X_test)))
 
 # Confusion matrix
-sns.heatmap(confusion_matrix(y_test, bestimator_lr.predict(X_test)), annot=True)
-plt.show()
+# sns.heatmap(confusion_matrix(y_test, bestimator_lr.predict(X_test)), annot=True)
+# plt.show()
 
-### With MI Feature Selection ###
+### With MI Feature Selection (MI - mutual information) ###
 mi_score = MIC(X_train,y_train)
 
 cols_importance = sorted(list(zip(X_train.columns, mi_score)), key=lambda x: x[1], reverse=True)
@@ -459,173 +455,6 @@ print(classification_report(y_test, bestimator_lr_6k.predict(X_test_6k)))
 sns.heatmap(confusion_matrix(y_test, bestimator_lr_6k.predict(X_test_6k)), annot=True)
 plt.show()
 
-### Binary Classification + TextBlob Sentiment Analysis ###
-class SentimentClassifier:
-    def __init__(self):
-        self.classifier = LogisticRegression()
-    
-    def fit_classifier(self, X_vector, y, params):
-        model_cv = self.classifier.fit(X_vector, y)
-        self.classifier = model_cv#.best_estimator_
-        
-    def __return_label(self, polarity):
-        if -1. <= polarity < 0:
-            return 'Negative'
-        if polarity == 0:
-            return 'Neutral'
-        return 'Positive'
-        
-    def predict_sentiment(self, X_vector, X_texts):
-        irrelevance = self.classifier.predict(X_vector)
-        X_sentimental = X_texts[irrelevance == 0]
-        X_sentimental_idx = X_sentimental.index
-        X_irrelevant_index = X_vector[irrelevance == 1].index
-        
-        pred_sent = [TextBlob(text).sentiment.polarity for text in X_sentimental]
-        pred_sent = pd.Series([*map(lambda x: self.__return_label(x), pred_sent )],
-                              index=X_sentimental_idx)
-        
-        pred_irrelevance = irrelevance[irrelevance == 1]
-        pred_irrelevance = pd.Series(pred_irrelevance, index=X_irrelevant_index)
-        pred_irrelevance = pred_irrelevance.apply(lambda x: 'Irrelevant')
-        
-        pred = pd.concat([pred_irrelevance, pred_sent], axis=0).sort_index(inplace=False)
-        
-        return pred
-    
-sent_classifier = SentimentClassifier()
-sent_classifier.fit_classifier(X_train_6k, [1 if target == 'Irrelevant' else 0 for target in y_train], rs_parameters)
+# Binary Classification + TextBlob Sentiment Analysis 
 
-X_texts_test = data['text'][data.index.isin(X_test.index)]
-
-pred_test = sent_classifier.predict_sentiment(X_test_6k, X_texts_test)
-pred_test.value_counts()
-
-print(classification_report(y_test, pred_test))
-
-sns.heatmap(confusion_matrix(y_test, pred_test), annot=True)
-plt.show()
-
-### Pytorch Lightning Classifier ###
-with open('../X_train.pkl', 'rb') as f:
-    X_train = pickle.load(f)
-with open('../X_test.pkl', 'rb') as f:
-    X_test = pickle.load(f)
-with open('../y_train.pkl', 'rb') as f:
-    y_train = pickle.load(f)
-with open('../y_test.pkl', 'rb') as f:
-    y_test = pickle.load(f)
-
-torch.manual_seed(42)
-
-def plot_loss(losses, title=''):
-    """
-    plots and saves loss progression while fitting
-    """
-    if len(losses) < 3:
-        return
-
-    pos = np.vstack(losses)
-    x, y = pos.T
-    plt.clf()
-    plt.ion()
-    plt.figure(figsize=(9, 5))
-    plt.plot(x, y)
-    plt.title(title)
-    clear_output(wait=True)
-    plt.show()
-
-class NNSentimentClassifier(pl.LightningModule):
-    def __init__(self):
-        super().__init__()
-        self.softmax = nn.Softmax(dim=1)
-        self.dropout = nn.Dropout(0.2)
-        self.model = nn.Sequential(
-        nn.Linear(8032, 1000),
-        nn.ReLU(),
-        self.dropout,
-        nn.Linear(1000, 100),
-        nn.Tanh(),
-        self.dropout,
-        nn.Linear(100, 1000),
-        nn.ReLU(),
-        self.dropout,
-        nn.Linear(1000, 10),
-        nn.ReLU(),
-        self.dropout,
-        nn.Linear(10, 4)
-        )
-        self.acc_train_loss = []
-        self.acc_val_loss = []
-    
-    def forward (self, x):
-        prediction = self.model(x)
-        return prediction
-        
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.001, weight_decay=0.0001)
-        scheduler = StepLR(optimizer, step_size=3, gamma=0.1, verbose=True)
-        return {"optimizer": optimizer, "lr_scheduler": scheduler}
-
-    def training_step(self, train_batch, batch_idx):
-        x, y = train_batch
-        y = y.long()
-        prediction = self.forward(x.float())
-        loss = F.cross_entropy(prediction, y)
-        self.log('train_loss', loss)
-        return loss
-    
-    def validation_step(self, val_batch, batch_idx):
-        x, y = val_batch
-        y = y.long()
-        prediction = self.forward(x.float())
-        loss = F.cross_entropy(prediction, y)
-        self.log('val_loss', loss, prog_bar=True, on_step=False, on_epoch=True)
-    
-    def test_step(self, test_batch, batc_idx):
-        x, y = test_batch
-        y = y.long()
-        prediction = model.forward(x.float())
-        preds = torch.argmax(prediction, dim=1)
-
-        return preds
-    
-# data
-target_to_idx = {
-    'Irrelevant': 0,
-    'Negative': 1,
-    'Neutral': 2,
-    'Positive': 3
-    }
-
-y_train_idx = torch.from_numpy(y_train.map(target_to_idx).values.astype(np.float))
-train_data_tensor = data_utils.TensorDataset(torch.from_numpy(X_train.to_numpy().astype(np.float)), y_train_idx)
-train_data_tensor, val_data_tensor = random_split(train_data_tensor, [62540, 6948])
-train_loader = DataLoader(train_data_tensor, batch_size=32)
-val_loader = DataLoader(val_data_tensor, batch_size=1)
-
-# model
-model = NNSentimentClassifier()
-
-# training
-trainer = pl.Trainer(gpus=1, precision=16, limit_train_batches=0.5, max_epochs=50)
-trainer.fit(model, train_loader, val_loader)
-
-y_test_idx = torch.from_numpy(y_test.map(target_to_idx).values.astype(np.float))
-test_data_tensor = data_utils.TensorDataset(torch.from_numpy(X_test.to_numpy().astype(np.float)), y_test_idx)
-test_loader = DataLoader(test_data_tensor, batch_size=1)
-
-preds = []
-for batch in test_loader:
-    x, y = batch
-    y = y.long()
-    prediction = model.forward(x.float().cuda())
-    preds.extend(torch.argmax(prediction, dim=1).cpu())
-
-print(classification_report(preds, y_test_idx))
-
-sns.heatmap(confusion_matrix(preds, y_test_idx), annot=True)
-plt.show()
-
-# save the net 
-torch.save(model.state_dict(), 'net.pt')
+# Neural networks
