@@ -17,12 +17,10 @@ from textblob import Word
 from wordcloud import WordCloud             # Create a word cloud to visualize the most common words
 from better_profanity import profanity      # Remove profanity from tweets
 from collections import Counter             # Count the number of times a value appears in a list
+from nltk.corpus import stopwords
 
 # Importing libraries for the GUI
 import PySimpleGUI as sg                    # To make the GUI  
-
-# Load validation dataset
-#validation = pd.read_csv('dataset/tweets_validation.csv')
 
 # Define the stop words
 stop_words = ['a', 'about', 'above', 'after', 'again', 'ain', 'all', 'am', 'an',
@@ -84,6 +82,9 @@ while True:
         break
 window.close()
 
+# Set query to lowercase
+query = query.lower()
+
 # Continue with the Twitter Sentiment Analysis, pre-processing
 
 # Remove retweets
@@ -109,7 +110,11 @@ def clean_tweets(df, stop_words):
     # Remove profanity
     df['tweets'] = df['tweets'].apply(lambda x: profanity.censor(x))
     # Remove links
-    df['tweets'] = df['tweets'].str.replace(r'http\S+', '') 
+    df['tweets'] = df['tweets'].str.replace(r'http\S+', '')
+    # Remove usernames
+    df['tweets'] = df['tweets'].str.replace(r'@\S+', '')    
+    # Remove punctuation
+    df['tweets'] = df['tweets'].str.replace('[^\w\s]','')
     # Removing stop words
     df['tweets'] = df['tweets'].apply(lambda x: ' '.join(x for x in x.split() if x not in stop_words))
     # Lemmatization
@@ -157,8 +162,6 @@ pos = 0
 neg = 0
 neu = 0
 
-# Sentiment analysis using Naive bayes
-
 
 # --- PRINTING ---
 # Create a loop to classify the tweets as Positive, Negative, or Neutral.
@@ -205,11 +208,23 @@ plt.show()
 # Create list of all individual words
 list_all_words = all_words.split()
 
-# Remove words that are just numbers eg. years
-list_all_words = [w for w in list_all_words if not w.isnumeric()]
+# Create list of stopwords
+stopwords_list = stopwords.words('english')
+
+# Remove words that are just numbers eg. years and only keep words with more than 2 characters
+list_all_words = [w for w in list_all_words if not w.isnumeric() and len(w) > 2 and not w == query and not w in stopwords_list ]
 
 # Find the 10 most common words in the tweets
-common_words = Counter(list_all_words).most_common(10)
-print('Top 10 most common words: ' + str(common_words))
+common_words = Counter(list_all_words).most_common(20)
+
+# Convert the list of most common words to a dataframe
+df = pd.DataFrame(data = common_words, 
+                    columns = ['tweets','freq'])
+
+# Plot the most common words
+df.plot.bar(x='tweets', y='freq')
+plt.show()
+
+print('Top 20 most common words: ' + str(common_words))
 
 # TODO: Add a function to see subjectivity in the tweets?

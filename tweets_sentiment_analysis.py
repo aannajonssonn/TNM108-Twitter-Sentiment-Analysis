@@ -162,7 +162,7 @@ for axis, (target, words) in zip(axes.flatten(), word_counts.items()):
 plt.show()
 
 ## Most correlated words for each topic using chi2 ##
-tfidf = TfidfVectorizer(sublinear_tf=True, min_df=5, ngram_range=(1, 2), stop_words='english', max_features=10000)
+tfidf = TfidfVectorizer(sublinear_tf = True, min_df = 5, ngram_range = (1, 2), stop_words = 'english', max_features = 10000)
 features = tfidf.fit_transform(data['text']).toarray()
 labels = data[TARGET]
 
@@ -252,9 +252,9 @@ class Preprocessor:
     
     #Initialises class variables 'vectorizer', 'stopwords', vectorizer_fitted'
     #OBS: max_features here should match init of TFIDF higher up in code, or at least be lower?
-    def __init__(self, stopwords=stopwords):
-        self.vectorizer = TfidfVectorizer(lowercase=False, max_features=10000,
-                                         min_df=10, ngram_range=(1, 3),
+    def __init__(self, stopwords = stopwords):
+        self.vectorizer = TfidfVectorizer(lowercase = False, max_features = 10000,
+                                         min_df = 10, ngram_range=(1, 3),
                                          tokenizer=None)
         self.stopwords = stopwords
         self.vectorizer_fitted = False
@@ -350,6 +350,7 @@ data_train_pr = pd.DataFrame.sparse.from_spmatrix(data_train_pr, columns=pr.vect
 # Convert categorys to binary values. 
 # If word is in the category: 1
 # If word is not in category: -1
+print('OHE...')
 ohe = OneHotEncoder()
 referring_ohe = ohe.fit_transform(data_train['subject'][data_train.index.isin(pr.train_idx)].to_numpy().reshape(-1, 1))
 referring_ohe = pd.DataFrame.sparse.from_spmatrix(referring_ohe, columns=ohe.get_feature_names_out())
@@ -362,6 +363,7 @@ y_train.index = X_train.index
 data_test_pr = pr.transform(data_test['text'], mode='test')
 data_test_pr = pd.DataFrame.sparse.from_spmatrix(data_test_pr, columns=pr.vectorizer.get_feature_names_out())
 
+print('OHE again...')
 ohe = OneHotEncoder()
 referring_ohe = ohe.fit_transform(data_train['subject'][data_train.index.isin(pr.train_idx)].to_numpy().reshape(-1, 1))
 referring_ohe = ohe.transform(data_test['subject'][data_test.index.isin(pr.test_idx)].to_numpy().reshape(-1, 1))
@@ -371,6 +373,7 @@ X_test = pd.concat([data_test_pr, referring_ohe], axis=1)
 y_test = y_test[y_test.index.isin(pr.test_idx)]
 y_test.index = X_test.index
 
+print('Shape of X_test and y_test...')
 X_test.shape, y_test.shape
 
 # Save prepared data for future use
@@ -398,9 +401,9 @@ def train_cv(model, X_train, y_train, params, n_splits = 5, scoring='f1_weighted
 
 rs_parameters = {
     'penalty': ['l2', 'l1', 'elasticnet'],
-    'C': uniform(scale=10),
+    'C': uniform(scale = 10),
     'solver': ['newton-cg', 'lbfgs', 'liblinear', 'saga'],
-    'l1_ratio': uniform(scale=10)
+    'l1_ratio': uniform(scale = 10)
     }
 
 ### Training without feature selection ###
@@ -409,15 +412,18 @@ lr = LogisticRegression()
 print('Cross Validation...')
 model_cv_lr = train_cv(lr, X_train, y_train, rs_parameters)
 
+print('Best estimator...')
 bestimator_lr = model_cv_lr.best_estimator_
 
+print('Classification report...')
 print(classification_report(y_test, bestimator_lr.predict(X_test)))
 
 # Confusion matrix
 # sns.heatmap(confusion_matrix(y_test, bestimator_lr.predict(X_test)), annot=True)
 # plt.show()
 
-### With MI Feature Selection (MI - mutual information) ###
+### With MI Feature Selection ###
+print('Mutual Info Classification...')
 mi_score = MIC(X_train,y_train)
 
 cols_importance = sorted(list(zip(X_train.columns, mi_score)), key=lambda x: x[1], reverse=True)
@@ -447,13 +453,15 @@ X_test_6k = X_test[[pair[0] for pair in cols_importance[:6000]]]
 # with open('../X_test_6k.pkl', 'rb') as f: X_test_6k = pickle.load(f)
 
 # Leave 6k features
-# lr = LogisticRegression()
-# print('Cross Validation FS 6k...')
-# model_cv_lr_6k = train_cv(lr, X_train_6k, y_train, rs_parameters)
+lr = LogisticRegression()
+print('Cross Validation FS 6k...')
+model_cv_lr_6k = train_cv(lr, X_train_6k, y_train, rs_parameters)
 
-# bestimator_lr_6k = model_cv_lr_6k.best_estimator_
+print('Best estimator FS 6k...')
+bestimator_lr_6k = model_cv_lr_6k.best_estimator_
 
-# print(classification_report(y_test, bestimator_lr_6k.predict(X_test_6k)))
+print('Classification report FS 6k...')
+print(classification_report(y_test, bestimator_lr_6k.predict(X_test_6k)))
 
 # sns.heatmap(confusion_matrix(y_test, bestimator_lr_6k.predict(X_test_6k)), annot=True)
 # plt.show()
