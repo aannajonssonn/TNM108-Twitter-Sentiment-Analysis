@@ -1,5 +1,9 @@
 # Ignore API_KEY.py
 API_KEYS.py
 
+# Ignore the scraped tweets from TextBlob-model
+dataset/uncleaned_tweets.csv
+dataset/cleaned_tweets.csv'
+
 # Ignore all files with a .pyc extension
 *.pyc
